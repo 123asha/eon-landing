@@ -52,6 +52,10 @@
     font-size: clamp(.8rem, 1.05vw, .95rem);
     line-height: 1.55; opacity: .92; letter-spacing: .01em;
   }
+  /* на мобилке держим строки как задано через <br>, без лишнего переноса */
+  @media (max-width: 600px) {
+    .tagline { white-space: nowrap; font-size: .75rem; }
+  }
   .cta {
     margin-top: 2.6rem;
     font-size: .9rem; letter-spacing: .02em;
@@ -60,8 +64,14 @@
     padding-bottom: .35rem;
     pointer-events: auto;
     transition: border-color .3s, opacity .3s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .cta:hover { border-color: #F2F1F0; opacity: .8; }
+  /* hover — только на устройствах с реальным курсором (десктоп) */
+  @media (hover: hover) {
+    .cta:hover { border-color: #F2F1F0; opacity: .8; }
+  }
+  /* тап на мобилке — тот же эффект по нажатию */
+  .cta:active { border-color: #F2F1F0; opacity: .8; }
 </style>
 </head>
 <body>
