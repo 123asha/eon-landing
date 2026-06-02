@@ -70,8 +70,8 @@
   @media (hover: hover) {
     .cta:hover { border-color: #F2F1F0; opacity: .8; }
   }
-  /* тап на мобилке — тот же эффект по нажатию */
-  .cta:active { border-color: #F2F1F0; opacity: .8; }
+  /* тап на мобилке — тот же эффект по нажатию (класс ставится из JS) */
+  .cta:active, .cta.is-tap { border-color: #F2F1F0; opacity: .8; }
 </style>
 </head>
 <body>
@@ -223,6 +223,15 @@ const TEXT_DELAY   = 0.8;   // c — пауза перед проявление�
 const TEXT_DUR     = 3.2;   // c — медленное проявление текста/лого
 
 const overlayEl = document.querySelector('.overlay');
+
+// тап по кнопке на мобилке включает/выключает эффект "как при ховере"
+const ctaEl = document.querySelector('.cta');
+if (ctaEl) {
+  ctaEl.addEventListener('click', (e) => {
+    e.preventDefault();
+    ctaEl.classList.toggle('is-tap');
+  });
+}
 
 let mouse = [0, 0], target = [0, 0];
 addEventListener('mousemove', e => {
