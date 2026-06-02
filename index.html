@@ -234,9 +234,13 @@ if (ctaEl) {
 }
 
 let mouse = [0, 0], target = [0, 0];
-addEventListener('mousemove', e => {
-  target = [e.clientX/innerWidth - 0.5, 0.5 - e.clientY/innerHeight];
-});
+function aim(x, y){ target = [x/innerWidth - 0.5, 0.5 - y/innerHeight]; }
+
+// десктоп — мышь
+addEventListener('mousemove', e => aim(e.clientX, e.clientY));
+// мобилка — касание/движение пальцем двигают фон (аналог ховера)
+addEventListener('touchstart', e => { const t = e.touches[0]; if (t) aim(t.clientX, t.clientY); }, {passive:true});
+addEventListener('touchmove',  e => { const t = e.touches[0]; if (t) aim(t.clientX, t.clientY); }, {passive:true});
 
 function resize(){
   const dpr = Math.min(devicePixelRatio, 2);
