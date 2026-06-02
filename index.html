@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesh Gradient — demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0b201a; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+
+  /* Контент поверх фона */
+  .overlay {
+    position: fixed; inset: 0; z-index: 2;
+    pointer-events: none;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #F2F1F0;
+    display: flex; flex-direction: column; align-items: center;
+    opacity: 0;   /* проявляется из JS синхронно с субстанцией */
+  }
+
+  /* стартовый слой поверх градиента: совпадает по цвету с текстом/лого,
+     поэтому в начале всё сливается, затем плавно "проявляет" историю */
+  .intro-white {
+    position: fixed; inset: 0; z-index: 1;
+    background: #F2F1F0;
+    pointer-events: none;
+    animation: reveal 3s cubic-bezier(.4,0,.2,1) .5s forwards;
+  }
+  @keyframes reveal { from { opacity: 1; } to { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro-white { animation: none; opacity: 0; }
+  }
+
+  /* адрес сверху по центру */
+  .address {
+    margin-top: 2.6rem;
+    font-size: .82rem; letter-spacing: .02em; opacity: .92;
+  }
+
+  /* центральный блок: логотип + слоган + кнопка */
+  .center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+  }
+  .logo { width: clamp(150px, 17vw, 215px); height: auto; }
+  .tagline {
+    margin-top: 1.4rem;
+    font-size: clamp(.8rem, 1.05vw, .95rem);
+    line-height: 1.55; opacity: .92; letter-spacing: .01em;
+  }
+  .cta {
+    margin-top: 2.6rem;
+    font-size: .9rem; letter-spacing: .02em;
+    color: #F2F1F0; text-decoration: none;
+    border-bottom: 1px solid rgba(242,241,240,.55);
+    padding-bottom: .35rem;
+    pointer-events: auto;
+    transition: border-color .3s, opacity .3s;
+  }
+  .cta:hover { border-color: #F2F1F0; opacity: .8; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div class="overlay">
+  <div class="address">Минск, ул. Володарского, 21</div>
+
+  <div class="center">
+    <!-- Логотип EON (оригинальный SVG из Desktop/eon.svg) -->
+    <svg class="logo" viewBox="0 0 170 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EON">
+      <path d="M37.7773 6.31836H6.2959V12.6357H37.7773V18.9561H6.2959V31.5918H37.7773V37.9092H0V0H37.7773V6.31836ZM125.927 37.9092H44.0752V0H125.927V37.9092ZM151.11 0V31.5918H163.704V0H170V37.9092H144.814V6.31836H138.518V37.9092H132.222V0H151.11ZM50.3711 31.5918H119.631V6.31836H50.3711V31.5918Z" fill="#F2F1F0"/>
+    </svg>
+
+    <div class="tagline">Премиальный мужской уход нового уровня<br>в эксклюзивном приватном формате</div>
+
+    <a class="cta" href="#">Стать гостем открытия</a>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl');
+
+// --- Вершинный шейдер: просто полноэкранный прямоугольник ---
+const vert = `
+attribute vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+`;
+
+// --- Фрагментный шейдер: тут и рождается градиент ---
+const frag = `
+precision highp float;
+uniform vec2  uRes;
+uniform float uTime;
+uniform vec2  uMouse;
+uniform float uReveal;   // 0..1.2 — насколько проявлена субстанция (снизу вверх)
+uniform float uOrange;   // 0..1 — отдельный быстрый выход оранжевого
+
+// --- шум Simplex (snoise) ---
+vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec2 mod289(vec2 x){return x-floor(x*(1.0/289.0))*289.0;}
+vec3 permute(vec3 x){return mod289(((x*34.0)+1.0)*x);}
+float snoise(vec2 v){
+  const vec4 C=vec4(0.211324865,0.366025403,-0.577350269,0.024390243);
+  vec2 i=floor(v+dot(v,C.yy));
+  vec2 x0=v-i+dot(i,C.xx);
+  vec2 i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);
+  vec4 x12=x0.xyxy+C.xxzz; x12.xy-=i1;
+  i=mod289(i);
+  vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));
+  vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);
+  m=m*m; m=m*m;
+  vec3 x=2.0*fract(p*C.www)-1.0;
+  vec3 h=abs(x)-0.5;
+  vec3 ox=floor(x+0.5);
+  vec3 a0=x-ox;
+  m*=1.79284291-0.85373472*(a0*a0+h*h);
+  vec3 g;
+  g.x=a0.x*x0.x+h.x*x0.y;
+  g.yz=a0.yz*x12.xz+h.yz*x12.yw;
+  return 130.0*dot(m,g);
+}
+
+// fbm — несколько слоёв шума для "текучести"
+float fbm(vec2 p){
+  float s=0.0, a=0.5;
+  for(int i=0;i<5;i++){ s+=a*snoise(p); p*=2.0; a*=0.5; }
+  return s;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes.xy;
+  vec2 p  = uv;
+  p.x *= uRes.x / uRes.y;              // коррекция соотношения сторон
+  p *= 0.1;                            // масштаб волн: меньше => крупнее разводы
+  float t = (uTime + 100.0) * 0.01;   // стартовая фаза, где оранжевый уже в кадре
+
+  // домен искажаем шумом => мягкие текучие пятна
+  vec2 q = vec2(fbm(p + t), fbm(p - t + 4.0));
+  vec2 r = vec2(fbm(p + q + uMouse*0.6 + 1.7),
+                fbm(p + q - uMouse*0.6 + 9.2));
+  float n = fbm(p + r);
+
+  // палитра EON
+  vec3 c1 = vec3(0.008,0.129,0.129); // #022121 — тёмная база
+  vec3 c2 = vec3(0.030,0.220,0.190); // глубокий тил
+  vec3 c3 = vec3(1.000,0.400,0.165); // #FF662A — оранжевый акцент
+  vec3 c4 = vec3(0.090,0.380,0.320); // изумруд (блики)
+
+  // субстанция БЕЗ оранжевого (оранжевый добавим отдельно, со своим таймингом)
+  vec3 colBase = mix(c1, c2, smoothstep(0.0,0.6,n));
+  colBase = mix(colBase, c4, smoothstep(0.4,0.9,length(r)*0.5));
+  colBase *= 0.9;                                    // слегка притушить
+  colBase *= 1.0 - 0.35*length(uv-0.5);              // лёгкая виньетка
+
+  // --- субстанция РАСЦВЕТАЕТ из тёмно-зелёного фона, снизу вверх ---
+  vec3 base  = vec3(0.008, 0.129, 0.129);            // #022121 — основной фон
+  float fld  = fbm(uv * 2.0 + 12.0);                 // ~[-1,1] крупные мягкие неровности
+  float mask = uv.y + fld * 0.10;                    // снизу вверх + органичная кромка
+  float edge = 0.16;                                 // мягкость фронта (больше = плавнее)
+  float revealed = 1.0 - smoothstep(uReveal - edge, uReveal + edge, mask);
+  vec3 col = mix(base, colBase, revealed);
+
+  // ОРАНЖЕВЫЙ — собственный быстрый выход (~1с), поверх и независимо от bottom-up
+  float peak = smoothstep(0.45, 0.80, n);
+  col = mix(col, c3, peak * uOrange * 0.7);   // оранжевого на 30% меньше
+
+  // зерно, чтобы убрать полосы (banding)
+  col += (fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)/255.0;
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
+gl.linkProgram(prog); gl.useProgram(prog);
+
+// полноэкранный прямоугольник из двух треугольников
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+const uRes    = gl.getUniformLocation(prog, 'uRes');
+const uTime   = gl.getUniformLocation(prog, 'uTime');
+const uMouse  = gl.getUniformLocation(prog, 'uMouse');
+const uReveal = gl.getUniformLocation(prog, 'uReveal');
+const uOrange = gl.getUniformLocation(prog, 'uOrange');
+
+// прогресс проявления субстанции (снизу вверх) и отдельный быстрый выход оранжевого
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let t0 = null;
+const REVEAL_DELAY = 0.3;   // c — пауза перед стартом
+const REVEAL_DUR   = 3.4;   // c — длительность заполнения снизу вверх
+const ORANGE_DELAY = 0.2;   // c — пауза перед выходом оранжевого
+const ORANGE_DUR   = 0.8;   // c — оранжевый виден уже в ~1-ю секунду
+const TEXT_DELAY   = 0.8;   // c — пауза перед проявлением текста/лого
+const TEXT_DUR     = 3.2;   // c — медленное проявление текста/лого
+
+const overlayEl = document.querySelector('.overlay');
+
+let mouse = [0, 0], target = [0, 0];
+addEventListener('mousemove', e => {
+  target = [e.clientX/innerWidth - 0.5, 0.5 - e.clientY/innerHeight];
+});
+
+function resize(){
+  const dpr = Math.min(devicePixelRatio, 2);
+  canvas.width  = innerWidth  * dpr;
+  canvas.height = innerHeight * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+addEventListener('resize', resize); resize();
+
+function loop(ms){
+  if (t0 === null) t0 = ms;
+  const elapsed = (ms - t0) / 1000;
+  // нормированный прогресс 0..1, затем растягиваем в [-0.2 .. 1.25]:
+  // -0.2 => экран полностью "бумажный", 1.25 => фронт дошёл до верха
+  let p01 = reduceMotion ? 1.0 : (elapsed - REVEAL_DELAY) / REVEAL_DUR;
+  p01 = Math.max(0.0, Math.min(1.0, p01));
+  const reveal = p01 * 1.65 - 0.35;   // [-0.35 .. 1.30]: старт = ровный фон, финал = до верха
+
+  // оранжевый — свой быстрый прогресс (виден уже в ~1-ю секунду)
+  let orange = reduceMotion ? 1.0 : (elapsed - ORANGE_DELAY) / ORANGE_DUR;
+  orange = Math.max(0.0, Math.min(1.0, orange));
+
+  // текст/лого — свой, чуть более медленный таймлайн проявления
+  let textProg = reduceMotion ? 1.0 : (elapsed - TEXT_DELAY) / TEXT_DUR;
+  textProg = Math.max(0.0, Math.min(1.0, textProg));
+  overlayEl.style.opacity = textProg;
+
+  // плавное "догоняние" мыши, как инерция у Lenis
+  mouse[0] += (target[0]-mouse[0])*0.05;
+  mouse[1] += (target[1]-mouse[1])*0.05;
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform1f(uTime, ms*0.001);
+  gl.uniform2f(uMouse, mouse[0], mouse[1]);
+  gl.uniform1f(uReveal, reveal);
+  gl.uniform1f(uOrange, orange);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
