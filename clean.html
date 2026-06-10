@@ -78,7 +78,9 @@
 <canvas id="gl"></canvas>
 
 <div class="overlay">
+
   <div class="center">
+
     <div class="tagline">Премиальный мужской уход нового уровня<br>в эксклюзивном приватном формате</div>
 
     <a class="cta" href="#">Стать гостем открытия</a>
@@ -87,7 +89,12 @@
 
 <script>
 const canvas = document.getElementById('gl');
-const gl = canvas.getContext('webgl');
+const gl = canvas.getContext('webgl', {
+  antialias: false,        // полноэкранный квад — сглаживать нечего
+  depth: false, stencil: false,
+  alpha: false,            // непрозрачный фон — быстрее композитинг
+  powerPreference: 'low-power'
+});
 
 // --- Вершинный шейдер: просто полноэкранный прямоугольник ---
 const vert = `
@@ -132,7 +139,7 @@ float snoise(vec2 v){
 // fbm — несколько слоёв шума для "текучести"
 float fbm(vec2 p){
   float s=0.0, a=0.5;
-  for(int i=0;i<5;i++){ s+=a*snoise(p); p*=2.0; a*=0.5; }
+  for(int i=0;i<4;i++){ s+=a*snoise(p); p*=2.0; a*=0.5; }
   return s;
 }
 
@@ -236,9 +243,11 @@ addEventListener('touchstart', e => { const t = e.touches[0]; if (t) aim(t.clien
 addEventListener('touchmove',  e => { const t = e.touches[0]; if (t) aim(t.clientX, t.clientY); }, {passive:true});
 
 function resize(){
-  const dpr = Math.min(devicePixelRatio, 2);
-  canvas.width  = innerWidth  * dpr;
-  canvas.height = innerHeight * dpr;
+  // градиент мягкий => рендерим на 0.6 от CSS-пикселей, canvas растягивается до 100vw/vh.
+  // в разы меньше работы фрагментного шейдера без заметной потери качества.
+  const q = 0.6;
+  canvas.width  = Math.max(1, Math.round(innerWidth  * q));
+  canvas.height = Math.max(1, Math.round(innerHeight * q));
   gl.viewport(0, 0, canvas.width, canvas.height);
 }
 addEventListener('resize', resize); resize();
