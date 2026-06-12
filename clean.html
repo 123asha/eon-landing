@@ -221,7 +221,7 @@ void main(){
 
   // ОРАНЖЕВЫЙ — собственный быстрый выход (~1с), поверх и независимо от bottom-up
   float peak = smoothstep(0.45, 0.80, n);
-  col = mix(col, c3, peak * uOrange * 0.7);   // оранжевого на 30% меньше
+  col = mix(col, c3, peak * uOrange * 0.8);   // сила оранжевого
 
   // зерно, чтобы убрать полосы (banding)
   col += (fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-0.5)/255.0;
