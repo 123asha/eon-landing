@@ -29,9 +29,12 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   a { outline: none; }                 /* без браузерных обводок при тапе/фокусе */
   a:focus, a:focus-visible { outline: none; }
-  html, body { height: 100%; overflow: hidden; background: #022121; }
+  html, body { height: 100%; overflow: hidden; background: #022121; overscroll-behavior: none; }
   /* фиксируем body: убирает любой скролл/раскачку (включая iOS Safari) */
   body { position: fixed; inset: 0; width: 100%; }
+  /* не рисовать полосы прокрутки даже при системной настройке "показывать всегда" */
+  ::-webkit-scrollbar { display: none; }
+  html { scrollbar-width: none; }
   canvas { display: block; width: 100%; height: 100%; }
 
   .overlay {
@@ -78,11 +81,12 @@
 
   .cta {
     margin-top: 4.2rem;
-    font-size: clamp(.68rem, .8vw, .96rem);
-    text-transform: uppercase; letter-spacing: .18em;
+    /* тот же шрифт, что у адреса; линия-подчёркивание ближе к тексту */
+    font-size: clamp(.8rem, .9vw, 1.06rem);
+    letter-spacing: .02em;
     color: #F2F1F0; text-decoration: none;
     border-bottom: 1px solid rgba(242,241,240,.45);
-    padding-bottom: .55rem;
+    padding-bottom: .22rem;
     pointer-events: auto;
     transition: border-color .3s, opacity .3s;
     -webkit-tap-highlight-color: transparent;

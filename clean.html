@@ -36,9 +36,12 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   a { outline: none; }                 /* без браузерных обводок при тапе/фокусе */
   a:focus, a:focus-visible { outline: none; }
-  html, body { height: 100%; overflow: hidden; background: #0b201a; }
+  html, body { height: 100%; overflow: hidden; background: #0b201a; overscroll-behavior: none; }
   /* фиксируем body: убирает любой скролл/раскачку (включая iOS Safari) */
   body { position: fixed; inset: 0; width: 100%; }
+  /* не рисовать полосы прокрутки даже при системной настройке "показывать всегда" */
+  ::-webkit-scrollbar { display: none; }
+  html { scrollbar-width: none; }
   canvas { display: block; width: 100%; height: 100%; }
 
   /* Контент поверх фона */
