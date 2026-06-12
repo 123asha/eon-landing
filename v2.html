@@ -27,6 +27,8 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  a { outline: none; }                 /* без браузерных обводок при тапе/фокусе */
+  a:focus, a:focus-visible { outline: none; }
   html, body { height: 100%; overflow: hidden; background: #022121; }
   canvas { display: block; width: 100vw; height: 100vh; }
 
