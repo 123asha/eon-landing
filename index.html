@@ -37,7 +37,9 @@
   a { outline: none; }                 /* без браузерных обводок при тапе/фокусе */
   a:focus, a:focus-visible { outline: none; }
   html, body { height: 100%; overflow: hidden; background: #0b201a; }
-  canvas { display: block; width: 100vw; height: 100vh; }
+  /* фиксируем body: убирает любой скролл/раскачку (включая iOS Safari) */
+  body { position: fixed; inset: 0; width: 100%; }
+  canvas { display: block; width: 100%; height: 100%; }
 
   /* Контент поверх фона */
   .overlay {
