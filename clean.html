@@ -62,13 +62,18 @@
     .intro-white { animation: none; opacity: 0; }
   }
 
-  /* адрес снизу по центру (по макету 1920) */
+  /* адрес снизу по центру (по макету 1920); клик открывает Яндекс.Карты */
   .address {
     position: absolute; bottom: 2.4rem; left: 50%;
     transform: translateX(-50%);
     font-size: clamp(.85rem, .94vw, 1.125rem);
     letter-spacing: .02em; white-space: nowrap;
+    color: inherit; text-decoration: none;
+    pointer-events: auto; cursor: pointer;
+    transition: opacity .3s;
+    -webkit-tap-highlight-color: transparent;
   }
+  @media (hover: hover) { .address:hover { opacity: .75; } }
   .address .label {
     opacity: .55; margin-right: .55em;
     font-size: .8em; text-transform: uppercase; letter-spacing: .08em;
